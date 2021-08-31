@@ -1,14 +1,13 @@
 import requests
-from pprint import pprint
 from datetime import datetime
 import time
 import os
 from tqdm import tqdm
-import json
 
 vk_token = os.getenv('TOKEN_VK', '')
 yandex_token = os.getenv('TOKEN_YA', '')
 ins_token = os.getenv('TOKEN_INST', '')
+
 
 def check_the_answer(response, type):
     """Функция проверяет ответы request"""
@@ -37,7 +36,7 @@ class VkUser:
             '': 1,
         }
 
-    def my_fotos(self, album_id, extended = 0, count = 5):
+    def my_fotos(self, album_id, extended=0, count=5):
         """Метод получает список фото указанного альбома"""
         my_fotos_url = self.API_VK_BASE_URL + 'photos.get'
         my_fotos_params = {
@@ -46,26 +45,26 @@ class VkUser:
             'count': count,
         }
 
-        res = requests.get(my_fotos_url, params = {**self.params, **my_fotos_params}).json()
+        res = requests.get(my_fotos_url, params={**self.params, **my_fotos_params}).json()
 
-
-        result = check_the_answer(res, 'vk') #res['response']['items']
+        result = check_the_answer(res, 'vk')
 
         list_foto = []
 
-        if result:
-            for item_foto in result:
-                list_temp_dict = {}
-                list_temp_dict['name'] = item_foto['likes']['count']
-                list_temp_dict['url'] = item_foto['sizes'][-1]['url']
-                list_temp_dict['size'] = str(item_foto['sizes'][-1]['height']) \
-                                         + 'x' + str(item_foto['sizes'][-1]['width'])
+        if not result:
+            return list_foto
 
-                if list_temp_dict in list_foto:
-                    list_temp_dict['name'] = str(item_foto['likes']['count']) + '_' \
-                                             + str(datetime.fromtimestamp((item_foto['date'])).strftime('%Y-%m-%d'))
+        for item_foto in result:
+            list_temp_dict = {}
+            list_temp_dict['name'] = item_foto['likes']['count']
+            list_temp_dict['url'] = item_foto['sizes'][-1]['url']
+            list_temp_dict['size'] = str(item_foto['sizes'][-1]['height'])+'x'+str(item_foto['sizes'][-1]['width'])
 
-                list_foto.append(list_temp_dict)
+            if list_temp_dict in list_foto:
+                list_temp_dict['name'] = str(item_foto['likes']['count']) + '_' \
+                                         + str(datetime.fromtimestamp((item_foto['date'])).strftime('%Y-%m-%d'))
+
+            list_foto.append(list_temp_dict)
 
         return list_foto
 
@@ -83,17 +82,19 @@ class InstUser:
             'access_token': self.token
         }
 
-        res = requests.get('https://graph.instagram.com/me/media', params = my_foto_inst_params)
+        res = requests.get('https://graph.instagram.com/me/media', params=my_foto_inst_params)
 
         result = check_the_answer(res, 'inst')
 
-        if result:
-            for item_foto in result:
-                list_temp_dict = {}
-                list_temp_dict['name'] = item_foto['id']
-                list_temp_dict['url'] = item_foto['media_url']
+        if not result:
+            return list_foto
 
-                list_foto.append(list_temp_dict)
+        for item_foto in result:
+            list_temp_dict = {}
+            list_temp_dict['name'] = item_foto['id']
+            list_temp_dict['url'] = item_foto['media_url']
+
+            list_foto.append(list_temp_dict)
 
         return list_foto
 
@@ -104,7 +105,7 @@ class YaUploader:
         self.token = token
         self.API_YANDEX_BASE_URL = "https://cloud-api.yandex.net/"
 
-    def upload(self, files_list_dir, dir_files = ''):
+    def upload(self, files_list_dir, dir_files=''):
         """Метод загружает файлы по списку file_list на яндекс диск"""
         self.dir_files = dir_files
 
@@ -151,7 +152,7 @@ if __name__ == "__main__":
     ya_disk = YaUploader(yandex_token)
 
     list_vk_foto = my_vk.my_fotos('profile', 1)
-    if(list_vk_foto):
+    if list_vk_foto:
         ya_disk.upload(list_vk_foto, 'vk/')
 
     my_inst = InstUser(ins_token)
